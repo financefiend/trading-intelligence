@@ -1,0 +1,66 @@
+import requests
+from supabase import create_client
+from datetime import date
+import os, time
+from dotenv import load_dotenv
+
+load_dotenv()
+sb = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept":     "application/json",
+    "Referer":    "https://www.nseindia.com"
+}
+
+# NSE API index names
+INDICES = {
+    "NIFTY 50":          "NIFTY 50",
+    "NIFTY MIDCAP 150":  "NIFTY MIDCAP 150",
+    "NIFTY SMALLCAP 250":"NIFTY SMALLCAP 250",
+    "NIFTY NEXT 50":     "NIFTY NEXT 50",
+    "NIFTY 100":         "NIFTY 100",
+    "NIFTY 200":         "NIFTY 200",
+}
+
+session = requests.Session()
+session.get("https://www.nseindia.com", headers=headers, timeout=10)
+today = date.today().isoformat()
+
+for index_name, api_name in INDICES.items():
+    print(f"\nFetching {index_name}...")
+    try:
+        r = session.get(
+            f"https://www.nseindia.com/api/equity-stockIndices?index={api_name.replace(' ','%20')}",
+            headers=headers, timeout=15
+        )
+        stocks = [s for s in r.json().get("data", [])
+                  if s.get("symbol") != api_name]
+
+        print(f"  Stocks found: {len(stocks)}")
+
+        rows = []
+        for s in stocks:
+            symbol = s.get("symbol", "").strip()
+            if not symbol:
+                continue
+            rows.append({
+                "index_name":     index_name,
+                "symbol":         symbol,
+                "company_name":   s.get("meta", {}).get("companyName", symbol),
+                "effective_from": today,
+                "effective_to":   None,
+                "is_current":     True
+            })
+
+        for i in range(0, len(rows), 100):
+            sb.table("index_composition").insert(rows[i:i+100]).execute()
+
+        print(f"  Stored: {len(rows)} stocks")
+        time.sleep(2)
+
+    except Exception as e:
+        print(f"  ERROR: {e}")
+
+total = sb.table("index_composition").select("id", count="exact").execute()
+print(f"\nTotal rows in index_composition: {total.count}")

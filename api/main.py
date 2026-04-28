@@ -2,10 +2,13 @@ from fastapi import FastAPI
 from supabase import create_client
 import os
 from dotenv import load_dotenv
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 load_dotenv()
 
 app = FastAPI(title="Trading Intelligence API")
+app.mount("/dashboards", StaticFiles(directory="dashboards"), name="dashboards")
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
 @app.get("/")
@@ -36,3 +39,7 @@ def get_dma_breadth(index_name: str = "NIFTY 500", days: int = 365):
         .order("date")\
         .execute()
     return result.data
+
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("dashboards/index.html")

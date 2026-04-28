@@ -8,9 +8,9 @@ load_dotenv()
 
 kite = KiteConnect(api_key=os.getenv("KITE_API_KEY"))
 kite.set_access_token(os.getenv("KITE_ACCESS_TOKEN"))
-sb   = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
 INSTRUMENTS_FILE = "nse_instruments.json"
+
 
 # ─── INSTRUMENTS CACHE ────────────────────────────────────────────────────────
 def get_instruments():
@@ -26,6 +26,7 @@ def get_instruments():
     print(f"Cached {len(instruments)} instruments")
     return instruments
 
+
 def get_token(symbol, instruments):
     for inst in instruments:
         if (inst["tradingsymbol"] == symbol and
@@ -33,13 +34,18 @@ def get_token(symbol, instruments):
             return inst["instrument_token"]
     return None
 
-def get_our_symbols():
-    import pandas as pd
-    df = pd.read_excel("symbol_mapping.xlsx")
-    df.columns = df.columns.str.strip()
-    symbols = df["symbol"].dropna().str.strip().tolist()
-    print(f"Loaded {len(symbols)} symbols from symbol_mapping.xlsx")
+
+def get_nifty500_symbols():
+    sb = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+    r  = sb.table("index_composition")\
+           .select("symbol")\
+           .eq("index_name", "NIFTY 500")\
+           .eq("is_current", True)\
+           .execute()
+    symbols = [row["symbol"] for row in r.data]
+    print(f"Loaded {len(symbols)} Nifty 500 symbols from Supabase")
     return symbols
+
 
 # ─── TEST — SINGLE SYMBOL ─────────────────────────────────────────────────────
 def test_single(symbol="RELIANCE"):
@@ -50,7 +56,7 @@ def test_single(symbol="RELIANCE"):
         print(f"Token not found for {symbol}")
         return
 
-    print(f"\nToken for {symbol}: {token}")
+    print(f"Token for {symbol}: {token}")
     candles = kite.historical_data(
         instrument_token = token,
         from_date        = date.today() - timedelta(days=7),
@@ -58,10 +64,9 @@ def test_single(symbol="RELIANCE"):
         interval         = "day"
     )
 
+    rows = []
     print(f"\n{'DATE':<15} {'OPEN':>8} {'HIGH':>8} {'LOW':>8} {'CLOSE':>8} {'VOLUME':>12}")
     print("-" * 65)
-
-    rows = []
     for c in candles:
         ts = str(c["date"])[:10]
         print(f"{ts:<15} {c['open']:>8} {c['high']:>8} {c['low']:>8} {c['close']:>8} {c['volume']:>12}")
@@ -76,31 +81,24 @@ def test_single(symbol="RELIANCE"):
             "volume":    int(c["volume"]),
         })
 
-    filename = f"{symbol}_test.csv"
-    with open(filename, "w", newline="") as f:
+    with open(f"{symbol}_test.csv", "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         writer.writeheader()
         writer.writerows(rows)
-    print(f"\nSaved {len(rows)} rows to {filename}")
+    print(f"\nSaved to {symbol}_test.csv")
 
-# ─── FETCH ALL — CHUNKED BY DATE RANGE ───────────────────────────────────────
-def fetch_all_to_csv(chunk=0, chunk_size=2000):
-    """
-    chunk=0 → today going back 2000 days        (most recent)
-    chunk=1 → 2000-4000 days back
-    chunk=2 → 4000-6000 days back
-    etc.
 
-    Kite allows max 2000 days per call.
-    """
+# ─── FETCH NIFTY 500 — 2000 DAYS ─────────────────────────────────────────────
+def fetch_nifty500(days=2000):
+    symbols     = get_nifty500_symbols()
     instruments = get_instruments()
-    symbols     = get_our_symbols()
 
-    to_date   = date.today() - timedelta(days = chunk * chunk_size)
-    from_date = to_date - timedelta(days = chunk_size)
+    to_date   = date.today()
+    from_date = to_date - timedelta(days=days)
 
     print(f"\n{'='*55}")
-    print(f"  Chunk {chunk}: {from_date} → {to_date}")
+    print(f"  Nifty 500 Historical Fetch")
+    print(f"  Range:   {from_date} to {to_date}")
     print(f"  Symbols: {len(symbols)}")
     print(f"{'='*55}\n")
 
@@ -132,11 +130,10 @@ def fetch_all_to_csv(chunk=0, chunk_size=2000):
                 continue
 
             for c in candles:
-                ts = str(c["date"])[:10]
                 all_rows.append({
                     "symbol":    symbol,
                     "timeframe": "1d",
-                    "date":      ts,
+                    "date":      str(c["date"])[:10],
                     "open":      round(float(c["open"]),  2),
                     "high":      round(float(c["high"]),  2),
                     "low":       round(float(c["low"]),   2),
@@ -158,17 +155,17 @@ def fetch_all_to_csv(chunk=0, chunk_size=2000):
 
         # Checkpoint every 50 symbols
         if (i + 1) % 50 == 0 and all_rows:
-            cp = f"ohlcv_chunk{chunk}_checkpoint_{i+1}.csv"
+            cp = f"nifty500_checkpoint_{i+1}.csv"
             with open(cp, "w", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=all_rows[0].keys())
                 writer.writeheader()
                 writer.writerows(all_rows)
-            print(f"\n  Checkpoint: {cp} ({len(all_rows)} rows)\n")
+            print(f"\n  Checkpoint: {cp} ({len(all_rows):,} rows)\n")
 
         time.sleep(0.4)
 
     # Save final
-    final = f"ohlcv_chunk{chunk}.csv"
+    final = "nifty500_2000days.csv"
     if all_rows:
         with open(final, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=all_rows[0].keys())
@@ -176,12 +173,12 @@ def fetch_all_to_csv(chunk=0, chunk_size=2000):
             writer.writerows(all_rows)
 
     print(f"\n{'='*55}")
-    print(f"  DONE — Chunk {chunk}")
-    print(f"  Rows:    {len(all_rows):,}")
-    print(f"  Failed:  {len(failed)}")
-    print(f"  File:    {final}")
+    print(f"  DONE")
+    print(f"  Rows:   {len(all_rows):,}")
+    print(f"  Failed: {len(failed)}")
+    print(f"  File:   {final}")
     if failed:
-        print(f"  Failed:  {failed[:10]}")
+        print(f"  Failed symbols: {failed[:20]}")
     print(f"{'='*55}")
 
 
@@ -191,21 +188,7 @@ if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "test"
 
     if mode == "test":
-        # Single symbol test
         test_single("RELIANCE")
 
-    elif mode == "chunk0":
-        # Days 0-2000 (most recent — already done as ohlcv_all_500.csv)
-        fetch_all_to_csv(chunk=0)
-
-    elif mode == "chunk1":
-        # Days 2000-4000
-        fetch_all_to_csv(chunk=1)
-
-    elif mode == "chunk2":
-        # Days 4000-6000
-        fetch_all_to_csv(chunk=2)
-
-    elif mode == "chunk3":
-        # Days 6000-8000
-        fetch_all_to_csv(chunk=3)
+    elif mode == "nifty500":
+        fetch_nifty500(days=2000)

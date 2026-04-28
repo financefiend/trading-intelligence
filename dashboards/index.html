@@ -11,14 +11,14 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:       #0b0f0e;
-    --surface:  #121918;
-    --border:   #1e2b28;
-    --green:    #00e5a0;
-    --red:      #ff4d6d;
-    --muted:    #4a6460;
-    --text:     #c8d8d5;
-    --dim:      #6b8a85;
+    --bg:      #0b0f0e;
+    --surface: #121918;
+    --border:  #1e2b28;
+    --green:   #00e5a0;
+    --red:     #ff4d6d;
+    --muted:   #4a6460;
+    --text:    #c8d8d5;
+    --dim:     #6b8a85;
   }
 
   body {
@@ -52,10 +52,7 @@
     margin-top: 4px;
   }
 
-  .range-tabs {
-    display: flex;
-    gap: 4px;
-  }
+  .range-tabs { display: flex; gap: 4px; }
 
   .range-tabs button {
     background: var(--surface);
@@ -76,62 +73,107 @@
     border-color: var(--green);
   }
 
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  .date-picker-row {
+    display: flex;
+    align-items: center;
     gap: 10px;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
   }
 
-  .metric {
+  .date-picker-row label {
+    font-size: 0.75rem;
+    color: var(--dim);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .date-picker-row input[type="date"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+  }
+
+  .date-picker-row input[type="date"]:focus {
+    outline: none;
+    border-color: var(--green);
+  }
+
+  .btn-today {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-today:hover { border-color: var(--green); color: var(--green); }
+
+  .stats-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px 16px;
+    padding: 12px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 140px;
     position: relative;
     overflow: hidden;
   }
 
-  .metric::before {
+  .stat::after {
     content: '';
     position: absolute;
-    top: 0; left: 0;
-    width: 3px; height: 100%;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
   }
 
-  .metric.green::before  { background: var(--green); }
-  .metric.red::before    { background: var(--red); }
-  .metric.neutral::before { background: var(--muted); }
+  .stat.s-green::after { background: var(--green); }
+  .stat.s-red::after   { background: var(--red); }
+  .stat.s-dim::after   { background: var(--muted); }
 
-  .metric .lbl {
-    font-size: 0.68rem;
+  .stat-label {
+    font-size: 0.65rem;
     color: var(--dim);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 6px;
-  }
-
-  .metric .val {
+    letter-spacing: 0.07em;
     font-family: 'Space Mono', monospace;
-    font-size: 1.5rem;
+  }
+
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.35rem;
     font-weight: 700;
+    line-height: 1;
   }
 
-  .metric .val.green { color: var(--green); }
-  .metric .val.red   { color: var(--red); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red   { color: var(--red); }
+  .stat-value.white { color: var(--text); }
 
-  .metric .sub {
-    font-size: 0.7rem;
-    color: var(--dim);
-    margin-top: 3px;
-  }
+  .stat-sub { font-size: 0.68rem; color: var(--dim); }
 
   .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 20px;
-    position: relative;
   }
 
   .chart-header {
@@ -145,16 +187,13 @@
 
   .chart-title {
     font-family: 'Space Mono', monospace;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: var(--dim);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
 
-  .legend {
-    display: flex;
-    gap: 16px;
-  }
+  .legend { display: flex; gap: 16px; }
 
   .legend-item {
     display: flex;
@@ -164,16 +203,9 @@
     color: var(--dim);
   }
 
-  .legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-  canvas {
-    width: 100% !important;
-    height: 340px !important;
-  }
+  canvas { width: 100% !important; height: 380px !important; }
 
   .loading {
     text-align: center;
@@ -197,7 +229,7 @@
 <div class="header">
   <div class="title-block">
     <h1>Nifty 500 — Market Breadth</h1>
-    <p>% of stocks trading above / below their 200-day moving average</p>
+    <p>% of stocks above / below their 200-day moving average</p>
   </div>
   <div class="range-tabs">
     <button onclick="setRange(30)"   id="r30">1M</button>
@@ -208,8 +240,14 @@
   </div>
 </div>
 
-<div class="metrics" id="metrics">
-  <div class="loading">Loading data...</div>
+<div class="date-picker-row">
+  <label>Stats for:</label>
+  <input type="date" id="stats-date" onchange="updateStats()">
+  <button class="btn-today" onclick="goToday()">← Latest</button>
+</div>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="loading">Loading...</div>
 </div>
 
 <div class="chart-card">
@@ -227,32 +265,34 @@
     </div>
   </div>
   <div id="chart-container">
-    <div class="loading">Fetching breadth data...</div>
+    <div class="loading">Fetching data...</div>
   </div>
 </div>
 
 <script>
-const API      = "https://trading-intelligence-production.up.railway.app";
-let allData    = [];
-let chart      = null;
-let curRange   = 180;
+const API    = "https://trading-intelligence-production.up.railway.app";
+let allData  = [];
+let chart    = null;
+let curRange = 180;
 
 async function loadData() {
   try {
     const res  = await fetch(`${API}/api/dma-breadth?index_name=NIFTY%20500&days=9999`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (!data || !data.length) { showError("No data in API."); return; }
 
-    if (!data || !data.length) {
-      showError("No data returned. Make sure dma_breadth table has data.");
-      return;
-    }
+    allData = data.sort((a,b) => a.date.localeCompare(b.date));
 
-    allData = data.sort((a, b) => a.date.localeCompare(b.date));
+    const latest = allData[allData.length-1].date;
+    const picker = document.getElementById("stats-date");
+    picker.value = latest;
+    picker.max   = latest;
+    picker.min   = allData[0].date;
+
     renderAll(curRange);
-
-  } catch (e) {
-    showError(`Could not reach API: ${e.message}<br>Check Railway is running and /api/dma-breadth endpoint exists.`);
+  } catch(e) {
+    showError(`API error: ${e.message}`);
   }
 }
 
@@ -263,65 +303,79 @@ function filterData(days) {
   return allData.filter(d => new Date(d.date) >= cutoff);
 }
 
+function getRowForDate(dateStr) {
+  const sorted = [...allData].sort((a,b) => b.date.localeCompare(a.date));
+  for (const row of sorted) {
+    if (row.date <= dateStr) return row;
+  }
+  return allData[allData.length-1];
+}
+
 function renderAll(days) {
   const data = filterData(days);
-  if (!data.length) {
-    showError("No data in selected range.");
-    return;
-  }
-  renderMetrics(data);
+  if (!data.length) return;
+  updateStats();
   renderChart(data);
 }
 
-function renderMetrics(data) {
-  const latest  = data[data.length - 1];
-  const prev    = data.length > 1 ? data[data.length - 2] : latest;
-  const pct     = parseFloat(latest.pct_above);
-  const prevPct = parseFloat(prev.pct_above);
-  const change  = (pct - prevPct).toFixed(1);
-  const sign    = change >= 0 ? "+" : "";
+function updateStats() {
+  const dateStr = document.getElementById("stats-date").value;
+  if (!dateStr || !allData.length) return;
 
-  let regime, rc;
-  if (pct >= 70)      { regime = "BULL PHASE";  rc = "green"; }
-  else if (pct >= 50) { regime = "NEUTRAL";      rc = "neutral"; }
-  else if (pct >= 30) { regime = "BEAR PHASE";   rc = "red"; }
-  else                { regime = "DEEP BEAR";     rc = "red"; }
+  const row      = getRowForDate(dateStr);
+  const pct      = parseFloat(row.pct_above);
+  const belowPct = (100 - pct).toFixed(1);
 
-  const maxPct = Math.max(...data.map(d => d.pct_above));
-  const minPct = Math.min(...data.map(d => d.pct_above));
+  const idx  = allData.findIndex(d => d.date === row.date);
+  const prev = idx > 0 ? allData[idx-1] : row;
+  const chg  = (pct - parseFloat(prev.pct_above)).toFixed(1);
+  const sign = chg >= 0 ? "+" : "";
 
-  document.getElementById("metrics").innerHTML = `
-    <div class="metric ${pct >= 50 ? 'green' : 'red'}">
-      <div class="lbl">Above 200 DMA</div>
-      <div class="val ${pct >= 50 ? 'green' : 'red'}">${pct}%</div>
-      <div class="sub">${latest.above_200dma} of ${latest.total_stocks} stocks</div>
+  const filtered = filterData(curRange);
+  const maxPct   = filtered.length ? Math.max(...filtered.map(d => d.pct_above)) : pct;
+  const minPct   = filtered.length ? Math.min(...filtered.map(d => d.pct_above)) : pct;
+  const avgPct   = filtered.length
+    ? (filtered.reduce((s,d) => s + parseFloat(d.pct_above), 0) / filtered.length).toFixed(1)
+    : pct;
+
+  document.getElementById("stats-bar").innerHTML = `
+    <div class="stat s-green">
+      <div class="stat-label">Above 200 DMA</div>
+      <div class="stat-value green">${pct}%</div>
+      <div class="stat-sub">${row.above_200dma} stocks · ${row.date}</div>
     </div>
-    <div class="metric red">
-      <div class="lbl">Below 200 DMA</div>
-      <div class="val red">${(100 - pct).toFixed(1)}%</div>
-      <div class="sub">${latest.below_200dma} stocks</div>
+    <div class="stat s-red">
+      <div class="stat-label">Below 200 DMA</div>
+      <div class="stat-value red">${belowPct}%</div>
+      <div class="stat-sub">${row.below_200dma} stocks · ${row.date}</div>
     </div>
-    <div class="metric neutral">
-      <div class="lbl">Day Change</div>
-      <div class="val ${change >= 0 ? 'green' : 'red'}">${sign}${change}%</div>
-      <div class="sub">vs previous session</div>
+    <div class="stat ${parseFloat(chg) >= 0 ? 's-green' : 's-red'}">
+      <div class="stat-label">Day Change</div>
+      <div class="stat-value ${parseFloat(chg) >= 0 ? 'green' : 'red'}">${sign}${chg}%</div>
+      <div class="stat-sub">vs ${prev.date}</div>
     </div>
-    <div class="metric ${rc}">
-      <div class="lbl">Market Regime</div>
-      <div class="val ${rc}" style="font-size:1rem">${regime}</div>
-      <div class="sub">based on breadth</div>
+    <div class="stat s-dim">
+      <div class="stat-label">Period High</div>
+      <div class="stat-value white">${maxPct}%</div>
+      <div class="stat-sub">in selected range</div>
     </div>
-    <div class="metric neutral">
-      <div class="lbl">Range (${data.length}d)</div>
-      <div class="val" style="font-size:1.1rem;color:var(--text)">${minPct}–${maxPct}%</div>
-      <div class="sub">low → high</div>
+    <div class="stat s-dim">
+      <div class="stat-label">Period Low</div>
+      <div class="stat-value white">${minPct}%</div>
+      <div class="stat-sub">in selected range</div>
     </div>
-    <div class="metric neutral">
-      <div class="lbl">Last Updated</div>
-      <div class="val" style="font-size:0.85rem;color:var(--text)">${latest.date}</div>
-      <div class="sub">${latest.total_stocks} stocks tracked</div>
+    <div class="stat s-dim">
+      <div class="stat-label">Period Avg</div>
+      <div class="stat-value white">${avgPct}%</div>
+      <div class="stat-sub">${filtered.length} trading days</div>
     </div>
   `;
+}
+
+function goToday() {
+  const latest = allData[allData.length-1]?.date || "";
+  document.getElementById("stats-date").value = latest;
+  updateStats();
 }
 
 function renderChart(data) {
@@ -341,67 +395,109 @@ function renderChart(data) {
       labels,
       datasets: [
         {
-          label:           "Above 200 DMA (%)",
-          data:            above,
-          borderColor:     "#00e5a0",
-          backgroundColor: "rgba(0,229,160,0.07)",
-          borderWidth:     2,
-          pointRadius:     0,
-          pointHoverRadius: 4,
-          tension:         0.3,
-          fill:            true,
+          label:            "Above 200 DMA (%)",
+          data:             above,
+          borderColor:      "#00e5a0",
+          backgroundColor:  "rgba(0,229,160,0.06)",
+          borderWidth:      2,
+          pointRadius:      0,
+          pointHoverRadius: 5,
+          tension:          0.2,
+          fill:             true,
         },
         {
-          label:           "Below 200 DMA (%)",
-          data:            below,
-          borderColor:     "#ff4d6d",
-          backgroundColor: "rgba(255,77,109,0.07)",
-          borderWidth:     2,
-          pointRadius:     0,
-          pointHoverRadius: 4,
-          tension:         0.3,
-          fill:            true,
+          label:            "Below 200 DMA (%)",
+          data:             below,
+          borderColor:      "#ff4d6d",
+          backgroundColor:  "rgba(255,77,109,0.06)",
+          borderWidth:      2,
+          pointRadius:      0,
+          pointHoverRadius: 5,
+          tension:          0.2,
+          fill:             true,
         }
       ]
     },
     options: {
-      responsive:           true,
-      maintainAspectRatio:  false,
-      interaction: { mode: "index", intersect: false },
+      responsive:          true,
+      maintainAspectRatio: false,
+      interaction:         { mode: "index", intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: "#121918",
+          backgroundColor: "#0e1614",
           borderColor:     "#1e2b28",
           borderWidth:     1,
           titleColor:      "#c8d8d5",
           bodyColor:       "#6b8a85",
+          padding:         10,
           titleFont:       { family: "Space Mono", size: 11 },
+          bodyFont:        { family: "DM Sans", size: 12 },
           callbacks: {
-            label: item => ` ${item.dataset.label}: ${item.raw}%`
+            title: items => items[0].label,
+            label: item  => ` ${item.dataset.label}: ${item.raw}%`
           }
         }
       },
       scales: {
         x: {
-          grid:  { color: "#1a2724", lineWidth: 0.5 },
+          grid: {
+            color:     "#1e2b28",
+            lineWidth: 1,
+            display:   true,
+          },
           ticks: {
             color:         "#4a6460",
-            maxTicksLimit: 8,
-            font:          { family: "Space Mono", size: 10 }
+            maxTicksLimit: 12,
+            font:          { family: "Space Mono", size: 10 },
+            maxRotation:   0,
           }
         },
         y: {
           min:  0,
           max:  100,
-          grid: { color: "#1a2724", lineWidth: 0.5 },
+          grid: {
+            color:     "#1e2b28",
+            lineWidth: 1,
+            display:   true,
+          },
           ticks: {
             color:    "#4a6460",
+            stepSize: 10,
             font:     { family: "Space Mono", size: 10 },
             callback: v => v + "%"
           }
         }
       }
+    },
+    plugins: [{
+      id: "refLine",
+      afterDraw(chart) {
+        const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+        const y50 = y.getPixelForValue(50);
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = "rgba(255,255,255,0.15)";
+        ctx.lineWidth   = 1;
+        ctx.moveTo(left, y50);
+        ctx.lineTo(right, y50);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.font      = "10px Space Mono";
+        ctx.fillText("50%", right - 32, y50 - 5);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Sync hover → date picker → stats
+  document.getElementById("breadth-chart").addEventListener("mousemove", e => {
+    const pts = chart.getElementsAtEventForMode(e, "index", { intersect: false }, true);
+    if (pts.length) {
+      const d = labels[pts[0].index];
+      document.getElementById("stats-date").value = d;
+      updateStats();
     }
   });
 }
@@ -413,16 +509,14 @@ function setRange(days) {
     if (b) b.classList.remove("active");
   });
   const idMap = {30:"r30",90:"r90",180:"r180",365:"r365",9999:"rAll"};
-  const btn = document.getElementById(idMap[days]);
-  if (btn) btn.classList.add("active");
+  const b = document.getElementById(idMap[days]);
+  if (b) b.classList.add("active");
   renderAll(days);
 }
 
 function showError(msg) {
-  document.getElementById("metrics").innerHTML =
-    `<div class="error-msg">${msg}</div>`;
-  document.getElementById("chart-container").innerHTML =
-    `<div class="error-msg">${msg}</div>`;
+  document.getElementById("stats-bar").innerHTML    = `<div class="error-msg">${msg}</div>`;
+  document.getElementById("chart-container").innerHTML = `<div class="error-msg">${msg}</div>`;
 }
 
 loadData();

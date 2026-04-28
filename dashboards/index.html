@@ -1,1 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nifty 500 — 200 DMA Breadth</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0b0f0e;
+    --surface:  #121918;
+    --border:   #1e2b28;
+    --green:    #00e5a0;
+    --red:      #ff4d6d;
+    --muted:    #4a6460;
+    --text:     #c8d8d5;
+    --dim:      #6b8a85;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .title-block h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--green);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .title-block p {
+    font-size: 0.78rem;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  .range-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .range-tabs button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .range-tabs button.active,
+  .range-tabs button:hover {
+    background: var(--green);
+    color: #000;
+    border-color: var(--green);
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+
+  .metric.green::before  { background: var(--green); }
+  .metric.red::before    { background: var(--red); }
+  .metric.neutral::before { background: var(--muted); }
+
+  .metric .lbl {
+    font-size: 0.68rem;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .metric .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .metric .val.green { color: var(--green); }
+  .metric .val.red   { color: var(--red); }
+
+  .metric .sub {
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin-top: 3px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--dim);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  canvas {
+    width: 100% !important;
+    height: 340px !important;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .error-msg {
+    text-align: center;
+    padding: 40px;
+    color: var(--red);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title-block">
+    <h1>Nifty 500 — Market Breadth</h1>
+    <p>% of stocks trading above / below their 200-day moving average</p>
+  </div>
+  <div class="range-tabs">
+    <button onclick="setRange(30)"   id="r30">1M</button>
+    <button onclick="setRange(90)"   id="r90">3M</button>
+    <button onclick="setRange(180)"  id="r180" class="active">6M</button>
+    <button onclick="setRange(365)"  id="r365">1Y</button>
+    <button onclick="setRange(9999)" id="rAll">All</button>
+  </div>
+</div>
+
+<div class="metrics" id="metrics">
+  <div class="loading">Loading data...</div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-header">
+    <span class="chart-title">Above vs Below 200 DMA — % of Nifty 500</span>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#00e5a0"></div>
+        Above 200 DMA
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ff4d6d"></div>
+        Below 200 DMA
+      </div>
+    </div>
+  </div>
+  <div id="chart-container">
+    <div class="loading">Fetching breadth data...</div>
+  </div>
+</div>
+
+<script>
+const API      = "https://trading-intelligence-production.up.railway.app";
+let allData    = [];
+let chart      = null;
+let curRange   = 180;
+
+async function loadData() {
+  try {
+    const res  = await fetch(`${API}/api/dma-breadth?index_name=NIFTY%20500&days=9999`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (!data || !data.length) {
+      showError("No data returned. Make sure dma_breadth table has data.");
+      return;
+    }
+
+    allData = data.sort((a, b) => a.date.localeCompare(b.date));
+    renderAll(curRange);
+
+  } catch (e) {
+    showError(`Could not reach API: ${e.message}<br>Check Railway is running and /api/dma-breadth endpoint exists.`);
+  }
+}
+
+function filterData(days) {
+  if (days >= 9999) return allData;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return allData.filter(d => new Date(d.date) >= cutoff);
+}
+
+function renderAll(days) {
+  const data = filterData(days);
+  if (!data.length) {
+    showError("No data in selected range.");
+    return;
+  }
+  renderMetrics(data);
+  renderChart(data);
+}
+
+function renderMetrics(data) {
+  const latest  = data[data.length - 1];
+  const prev    = data.length > 1 ? data[data.length - 2] : latest;
+  const pct     = parseFloat(latest.pct_above);
+  const prevPct = parseFloat(prev.pct_above);
+  const change  = (pct - prevPct).toFixed(1);
+  const sign    = change >= 0 ? "+" : "";
+
+  let regime, rc;
+  if (pct >= 70)      { regime = "BULL PHASE";  rc = "green"; }
+  else if (pct >= 50) { regime = "NEUTRAL";      rc = "neutral"; }
+  else if (pct >= 30) { regime = "BEAR PHASE";   rc = "red"; }
+  else                { regime = "DEEP BEAR";     rc = "red"; }
+
+  const maxPct = Math.max(...data.map(d => d.pct_above));
+  const minPct = Math.min(...data.map(d => d.pct_above));
+
+  document.getElementById("metrics").innerHTML = `
+    <div class="metric ${pct >= 50 ? 'green' : 'red'}">
+      <div class="lbl">Above 200 DMA</div>
+      <div class="val ${pct >= 50 ? 'green' : 'red'}">${pct}%</div>
+      <div class="sub">${latest.above_200dma} of ${latest.total_stocks} stocks</div>
+    </div>
+    <div class="metric red">
+      <div class="lbl">Below 200 DMA</div>
+      <div class="val red">${(100 - pct).toFixed(1)}%</div>
+      <div class="sub">${latest.below_200dma} stocks</div>
+    </div>
+    <div class="metric neutral">
+      <div class="lbl">Day Change</div>
+      <div class="val ${change >= 0 ? 'green' : 'red'}">${sign}${change}%</div>
+      <div class="sub">vs previous session</div>
+    </div>
+    <div class="metric ${rc}">
+      <div class="lbl">Market Regime</div>
+      <div class="val ${rc}" style="font-size:1rem">${regime}</div>
+      <div class="sub">based on breadth</div>
+    </div>
+    <div class="metric neutral">
+      <div class="lbl">Range (${data.length}d)</div>
+      <div class="val" style="font-size:1.1rem;color:var(--text)">${minPct}–${maxPct}%</div>
+      <div class="sub">low → high</div>
+    </div>
+    <div class="metric neutral">
+      <div class="lbl">Last Updated</div>
+      <div class="val" style="font-size:0.85rem;color:var(--text)">${latest.date}</div>
+      <div class="sub">${latest.total_stocks} stocks tracked</div>
+    </div>
+  `;
+}
+
+function renderChart(data) {
+  document.getElementById("chart-container").innerHTML =
+    '<canvas id="breadth-chart"></canvas>';
+
+  const ctx    = document.getElementById("breadth-chart").getContext("2d");
+  const labels = data.map(d => d.date);
+  const above  = data.map(d => parseFloat(d.pct_above));
+  const below  = data.map(d => parseFloat((100 - d.pct_above).toFixed(2)));
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label:           "Above 200 DMA (%)",
+          data:            above,
+          borderColor:     "#00e5a0",
+          backgroundColor: "rgba(0,229,160,0.07)",
+          borderWidth:     2,
+          pointRadius:     0,
+          pointHoverRadius: 4,
+          tension:         0.3,
+          fill:            true,
+        },
+        {
+          label:           "Below 200 DMA (%)",
+          data:            below,
+          borderColor:     "#ff4d6d",
+          backgroundColor: "rgba(255,77,109,0.07)",
+          borderWidth:     2,
+          pointRadius:     0,
+          pointHoverRadius: 4,
+          tension:         0.3,
+          fill:            true,
+        }
+      ]
+    },
+    options: {
+      responsive:           true,
+      maintainAspectRatio:  false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#121918",
+          borderColor:     "#1e2b28",
+          borderWidth:     1,
+          titleColor:      "#c8d8d5",
+          bodyColor:       "#6b8a85",
+          titleFont:       { family: "Space Mono", size: 11 },
+          callbacks: {
+            label: item => ` ${item.dataset.label}: ${item.raw}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid:  { color: "#1a2724", lineWidth: 0.5 },
+          ticks: {
+            color:         "#4a6460",
+            maxTicksLimit: 8,
+            font:          { family: "Space Mono", size: 10 }
+          }
+        },
+        y: {
+          min:  0,
+          max:  100,
+          grid: { color: "#1a2724", lineWidth: 0.5 },
+          ticks: {
+            color:    "#4a6460",
+            font:     { family: "Space Mono", size: 10 },
+            callback: v => v + "%"
+          }
+        }
+      }
+    }
+  });
+}
+
+function setRange(days) {
+  curRange = days;
+  ["30","90","180","365","All"].forEach(r => {
+    const b = document.getElementById("r" + r);
+    if (b) b.classList.remove("active");
+  });
+  const idMap = {30:"r30",90:"r90",180:"r180",365:"r365",9999:"rAll"};
+  const btn = document.getElementById(idMap[days]);
+  if (btn) btn.classList.add("active");
+  renderAll(days);
+}
+
+function showError(msg) {
+  document.getElementById("metrics").innerHTML =
+    `<div class="error-msg">${msg}</div>`;
+  document.getElementById("chart-container").innerHTML =
+    `<div class="error-msg">${msg}</div>`;
+}
+
+loadData();
+</script>
+</body>
+</html>
 const API = "https://trading-intelligence-production.up.railway.app";

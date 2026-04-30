@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from datetime import datetime, timedelta
+import os
 
 load_dotenv()
 
@@ -57,3 +59,26 @@ def get_dma_breadth(index_name: str = "NIFTY 500"):
 @app.get("/dashboard")
 def dashboard():
     return FileResponse("dashboards/index.html")
+
+@app.post("/update-token")
+def update_token(token: str, secret: str):
+    if secret != os.getenv("UPDATE_SECRET"):
+        raise HTTPException(status_code=403, detail="Invalid secret")
+    os.environ["KITE_ACCESS_TOKEN"] = token
+    supabase.table("kite_session").insert({
+        "access_token": token,
+        "is_valid":     True,
+        "expires_at":   (datetime.now() + timedelta(hours=20)).isoformat()
+    }).execute()
+    return {"status": "token updated successfully"}
+
+@app.post("/run/daily-update")
+def trigger_daily_update():
+    import subprocess
+    try:
+        subprocess.Popen(["python", "data/daily_update.py"])
+        return {"status": "started", "job": "daily_update"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
